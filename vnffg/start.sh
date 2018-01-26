@@ -9,6 +9,8 @@ openstack server create --flavor m1.tiny --image cirros-0.3.5-x86_64-disk --nic 
 echo "Create HTTP server..."
 openstack server create --flavor m1.tiny --image cirros-0.3.5-x86_64-disk --nic net-id=$net_id http_server
 
+sleep 10
+
 echo "Collect information from client and server"
 client_ip=$(openstack server list | grep http_client | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+')
 echo "HTTP client IP address: $client_ip"
@@ -72,6 +74,26 @@ tacker vnfd-create --vnfd-file tosca-vnffg-vnfd2.yaml VNFD2
 echo "Create VNFs..."
 tacker vnf-create --vnfd-name VNFD1 VNF1
 tacker vnf-create --vnfd-name VNFD2 VNF2
+
+echo "Waiting VNF is launched completely..."
+while true; do
+	COUNT=0
+	STATUS_VNF1=$(tacker vnf-list | grep VNF1 | awk '{print $9}')
+	STATUS_VNF2=$(tacker vnf-list | grep VNF2 | awk '{print $9}')
+	if [ "$STATUS_VNF1" = "ACTIVE" ]; then
+		COUNT=$[$COUNT + 1]
+	fi
+	if [ "$STATUS_VNF2" = "ACTIVE" ]; then
+		COUNT=$[$COUNT + 1]
+	fi
+	if [ "$COUNT" -eq 2 ]; then
+		echo "VNFs were launched completely!"
+		break
+	else
+		echo "Waiting for 5 seconds"
+		sleep 5
+	fi
+done
 
 echo "Create VNFFG..."
 tacker vnffg-create --vnffgd-name VNFFGD1 VNFFG1
