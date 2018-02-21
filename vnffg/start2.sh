@@ -21,9 +21,9 @@ echo "HTTP server IP address: $ip_dst"
 network_dest_port_id=$(openstack port list | grep $ip_dst | awk '{print $2}')
 echo "HTTP port id: $network_dest_port_id"
 
-echo "Create VNFFGD1 descriptor..."
+echo "Create VNFFGD1 descriptor with no flow classifier..."
 
-cat > tosca-vnffgd-VNF1-VNF2.yaml << EOL
+cat > tosca-vnffgd-no-flowclassifier.yaml << EOL
 tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
 description: Sample VNFFG template
@@ -38,15 +38,6 @@ topology_template:
       description: creates path (CP12->CP22)
       properties:
         id: 51
-        policy:
-          type: ACL
-          criteria:
-            - name: block_tcp
-              classifier:
-                network_src_port_id: ${network_source_port_id}
-                destination_port_range: 20-30
-                ip_proto: 6
-                ip_dst_prefix: ${ip_dst}/24
         path:
           - forwarder: VNFD1
             capability: CP12
@@ -71,9 +62,9 @@ EOL
 echo "#####################################################"
 
 
-echo "Create VNFFGD2 descriptor..."
+echo "Create VNFFGD2 descriptor with a flow classifier..."
 
-cat > tosca-vnffgd-VNF2-VNF1.yaml << EOL
+cat > tosca-vnffgd-with-flow-classifier.yaml << EOL
 tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
 
 description: Sample VNFFG template
@@ -98,10 +89,10 @@ topology_template:
                 ip_proto: 6
                 ip_dst_prefix: ${ip_dst}/24
         path:
-          - forwarder: VNFD2
-            capability: CP22
           - forwarder: VNFD1
             capability: CP12
+          - forwarder: VNFD2
+            capability: CP22
 
   groups:
     VNFFG1:
@@ -111,56 +102,13 @@ topology_template:
         vendor: tacker
         version: 1.0
         number_of_endpoints: 2
-        dependent_virtual_link: [VL22,VL12]
-        connection_point: [CP22,CP12]
-        constituent_vnfs: [VNFD2,VNFD1]
+        dependent_virtual_link: [VL12,VL22]
+        connection_point: [CP12,CP22]
+        constituent_vnfs: [VNFD1,VNFD2]
       members: [Forwarding_path1]
 EOL
 
 echo "##################################################################"
-
-
-cat > tosca-vnffgd-VNF2.yaml << EOL
-tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
-
-description: Sample VNFFG template
-
-topology_template:
-  description: Sample VNFFG template
-
-  node_templates:
-
-    Forwarding_path1:
-      type: tosca.nodes.nfv.FP.TackerV2
-      description: creates path (CP12->CP22)
-      properties:
-        id: 51
-        policy:
-          type: ACL
-          criteria:
-            - name: block_tcp
-              classifier:
-                network_src_port_id: ${network_source_port_id}
-                destination_port_range: 80-80
-                ip_proto: 6
-                ip_dst_prefix: ${ip_dst}/24
-        path:
-          - forwarder: VNFD2
-            capability: CP22
-
-  groups:
-    VNFFG1:
-      type: tosca.groups.nfv.VNFFG
-      description: HTTP to Corporate Net
-      properties:
-        vendor: tacker
-        version: 1.0
-        number_of_endpoints: 1
-        dependent_virtual_link: [VL22]
-        connection_point: [CP22]
-        constituent_vnfs: [VNFD2]
-      members: [Forwarding_path1]
-EOL
 
 #echo "On-board VNFFG descriptor..."
 #tacker vnffgd-create --vnffgd-file tosca-vnffgd-sample.yaml VNFFGD1

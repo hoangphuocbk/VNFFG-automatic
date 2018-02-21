@@ -1,0 +1,41 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: Sample VNFFG template
+
+topology_template:
+  description: Sample VNFFG template
+
+  node_templates:
+
+    Forwarding_path1:
+      type: tosca.nodes.nfv.FP.TackerV2
+      description: creates path (CP12->CP22)
+      properties:
+        id: 51
+        policy:
+          type: ACL
+          criteria:
+            - name: block_tcp
+              classifier:
+                network_src_port_id: ba774f13-9e53-4993-b3b5-076fb0007503
+                destination_port_range: 40-50
+                ip_proto: 6
+                ip_dst_prefix: 10.10.0.11/24
+        path:
+          - forwarder: VNFD2
+            capability: CP22
+          - forwarder: VNFD1
+            capability: CP12
+
+  groups:
+    VNFFG1:
+      type: tosca.groups.nfv.VNFFG
+      description: HTTP to Corporate Net
+      properties:
+        vendor: tacker
+        version: 1.0
+        number_of_endpoints: 2
+        dependent_virtual_link: [VL22,VL12]
+        connection_point: [CP22,CP12]
+        constituent_vnfs: [VNFD2,VNFD1]
+      members: [Forwarding_path1]
